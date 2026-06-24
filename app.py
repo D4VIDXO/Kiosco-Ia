@@ -7,10 +7,13 @@ import json
 from datetime import datetime
 import streamlit.components.v1 as components
 
+# Asegurate de poner esto bien arriba en tu app.py
+
+
 # Configuración de la página web (Pestaña del navegador y diseño ancho)
 st.set_page_config(
     page_title="Kiosco",
-    page_icon="🏪",
+    page_icon="imagenes/kiosco.png",
     layout="wide"
 )
 

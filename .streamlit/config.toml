@@ -1,0 +1,9 @@
+[theme]
+primaryColor = "#006aff" # Color principal (botones, barras de carga)
+backgroundColor = "#000000" # Color del fondo de la pantalla
+secondaryBackgroundColor = "#2D2D2D" # Color de la barra lateral (sidebar)
+textColor = "#FFFFFF" # Color de la letra
+font = "sans serif" # Tipografía (puede ser: sans serif, serif o monospace)
+
+[server]
+headless = true

@@ -5,27 +5,39 @@ from datetime import datetime
 # Volvemos a .xlsx para trabajar directamente con Excel
 NOMBRE_ARCHIVO = "Inventario_Quiosco.xlsx"
 
-def cargar_inventario():
-    # Si el archivo de Excel ya existe, lo lee. Si no, crea uno nuevo.
-    if os.path.exists(NOMBRE_ARCHIVO):
-        try:
-            df = pd.read_excel(NOMBRE_ARCHIVO)
-            # Asegura que las fechas se mantengan en el formato año-mes-día
-            if "Fecha Vencimiento" in df.columns:
-                df["Fecha Vencimiento"] = pd.to_datetime(df["Fecha Vencimiento"]).dt.strftime('%Y-%m-%d')
-            return df
-        except Exception as e:
-            print(f"Aviso: No se pudo leer el archivo de Excel. Se iniciará un inventario nuevo. Error: {e}")
-    
-    columnas = ["Producto", "Stock Actual", "Stock Mínimo", "Fecha Vencimiento"]
-    return pd.DataFrame(columns=columnas)
-
 def guardar_inventario(df):
     try:
+        # 1. Guardar el archivo principal operativo
         df.to_excel(NOMBRE_ARCHIVO, index=False)
         print(f"\n[✔] Datos guardados con éxito en '{NOMBRE_ARCHIVO}'.")
+        
+        # 2. Generar el backup con fecha/hora (si es que tu app.py lo hace de esta forma)
+        # Suponiendo que tus archivos de backup se guardan en una carpeta específica:
+        CARPETA_BACKUPS = "backups" # Cambialo por el nombre real de tu carpeta si es otra
+        
+        # --- SISTEMA DE ROTACIÓN DE BACKUPS ---
+        if os.path.exists(CARPETA_BACKUPS):
+            # Buscamos todos los archivos de respaldo dentro de la carpeta
+            archivos_backup = glob.glob(os.path.join(CARPETA_BACKUPS, "*.xlsx"))
+            
+            # Los ordenamos del más viejo al más nuevo según su fecha de creación
+            archivos_backup.sort(key=os.path.getctime)
+            
+            # Si superan el límite establecido (ej: 5), borramos los excedentes más antiguos
+            LIMITE_BACKUPS = 5
+            while len(archivos_backup) > LIMITE_BACKUPS:
+                archivo_viejo = archivos_backup.pop(0) # Extrae el más antiguo de la lista
+                try:
+                    os.remove(archivo_viejo)
+                    print(f"[🧹 Rotación] Backup antiguo eliminado para liberar espacio: {archivo_viejo}")
+                except Exception as e:
+                    print(f"No se pudo limpiar el backup viejo {archivo_viejo}: {e}")
+                    
+        return True
+        
     except Exception as e:
         print(f"\n❌ Error al guardar: Asegúrate de tener el archivo de Excel cerrado antes de guardar. Detalle: {e}")
+        return False
 
 def mostrar_inventario(df):
     if df.empty:
@@ -108,7 +120,7 @@ def menu_principal():
         print("2. Agregar o modificar un producto")
         print("3. Guardar cambios")
         print("4. Guardar y Salir")
-        
+
         opcion = input("\nSelecciona una opción (1-4): ").strip()
         
         if opcion == "1":

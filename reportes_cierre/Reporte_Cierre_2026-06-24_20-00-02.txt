@@ -1,0 +1,11 @@
+=========================================
+          REPORTE DE CIERRE DE CAJA       
+=========================================
+Fecha y Hora: 24/06/2026 20:00:02
+Total Recaudado: $2,500.00
+Artículos Vendidos: 1
+-----------------------------------------
+DETALLE DE LAS VENTAS:
+    Hora  Código Producto  Precio  Cantidad  Total
+19:59:51 6834593    oreos  2500.0         1 2500.0
+=========================================

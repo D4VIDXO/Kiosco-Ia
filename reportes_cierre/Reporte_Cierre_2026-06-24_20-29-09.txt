@@ -1,0 +1,15 @@
+=========================================
+          REPORTE DE CIERRE DE CAJA       
+=========================================
+Fecha y Hora: 24/06/2026 20:29:09
+Total Recaudado: $16,000.00
+Artículos Vendidos: 5
+-----------------------------------------
+DETALLE DE LAS VENTAS:
+    Hora     Código        Producto  Precio  Cantidad  Total
+20:28:55 12426543.0 Lays originales  3200.0         1 3200.0
+20:28:58 12426543.0 Lays originales  3200.0         1 3200.0
+20:28:59 12426543.0 Lays originales  3200.0         1 3200.0
+20:29:01 12426543.0 Lays originales  3200.0         1 3200.0
+20:29:06 12426543.0 Lays originales  3200.0         1 3200.0
+=========================================

@@ -270,14 +270,15 @@ with tab_caja:
                     os.makedirs(CARPETA_REPORTES)
                 
                 fecha_hoy_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                fecha_legible = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
                 nombre_reporte = os.path.join(CARPETA_REPORTES, f"Reporte_Cierre_{fecha_hoy_str}.txt")
                 
-                # Escritura física del reporte en disco
+                # Escritura física del reporte en disco (.txt individual)
                 with open(nombre_reporte, "w", encoding="utf-8") as f:
                     f.write("=========================================\n")
                     f.write("          REPORTE DE CIERRE DE CAJA       \n")
                     f.write("=========================================\n")
-                    f.write(f"Fecha y Hora: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+                    f.write(f"Fecha y Hora: {fecha_legible}\n")
                     f.write(f"Total Recaudado: ${total_caja:,.2f}\n")
                     f.write(f"Artículos Vendidos: {articulos_totales}\n")
                     f.write("-----------------------------------------\n")
@@ -285,12 +286,55 @@ with tab_caja:
                     f.write(df_ventas.to_string(index=False))
                     f.write("\n=========================================\n")
                 
+                # REGISTRAR EL CIERRE EN UN EXCEL / CSV ACUMULATIVO
+                archivo_excel = os.path.join(CARPETA_REPORTES, "cierres_historicos.csv")
+                
+                # Detectamos automáticamente el nombre de la columna de productos
+                col_nombre_producto = "Producto" if "Producto" in df_ventas.columns else df_ventas.columns[0]
+                
+                # 🌟 CAMBIO AQUÍ: Agrupamos por producto y sumamos las cantidades vendidas en el turno
+                df_agrupado = df_ventas.groupby(col_nombre_producto)["Cantidad"].sum().reset_index()
+                
+                # Armamos la lista compacta para el Excel (Ej: "Coca-Cola (x5), Alfajor (x3)")
+                lista_resumen = []
+                for _, fila in df_agrupado.iterrows():
+                    lista_resumen.append(f"{fila[col_nombre_producto]} (x{fila['Cantidad']})")
+                detalle_productos_texto = ", ".join(lista_resumen)
+                
+                # Creamos la fila con la estructura del Excel
+                datos_nueva_fila = {
+                    "Fecha y Hora": [fecha_legible],
+                    "Total Recaudado ($)": [total_caja],
+                    "Artículos Vendidos": [articulos_totales],
+                    "Detalle de Productos": [detalle_productos_texto]
+                }
+                df_nueva_fila = pd.DataFrame(datos_nueva_fila)
+                
+                # Guardado físico sin pisar datos anteriores
+                if os.path.exists(archivo_excel):
+                    df_nueva_fila.to_csv(archivo_excel, mode='a', header=False, index=False, encoding='utf-8-sig')
+                else:
+                    df_nueva_fila.to_csv(archivo_excel, index=False, encoding='utf-8-sig')
+                
+                # Reseteo de turno original
                 st.session_state.ventas_del_dia = []
-                st.success(f"💾 ¡Cierre exitoso! Reporte guardado en la carpeta '{CARPETA_REPORTES}'.")
+                st.success(f"💾 ¡Cierre exitoso! Guardado en la carpeta '{CARPETA_REPORTES}'.")
                 st.session_state.sonido_a_reproducir = "exito"
                 st.rerun()
         else:
             st.button("🏁 HACER CIERRE DE CAJA", disabled=True, use_container_width=True, help="Registrá ventas para habilitar el cierre.")
+            
+    # MOSTRAR EL HISTORIAL ACUMULADO ABAJO
+    st.markdown("---")
+    st.markdown("### 📊 Historial General de Cierres de Caja")
+    archivo_excel = os.path.join(CARPETA_REPORTES, "cierres_historicos.csv")
+    
+    if os.path.exists(archivo_excel):
+        df_historico = pd.read_csv(archivo_excel)
+        st.dataframe(df_historico, use_container_width=True)
+        st.info("💡 Este historial se actualiza de forma automática con cada cierre. Podés abrir el archivo `cierres_historicos.csv` con Excel cuando quieras para gestionar tu contabilidad.")
+    else:
+        st.info("Aún no hay cierres registrados en el historial general.")
 
 # PESTAÑA 2: MODIFICACIÓN MANUAL DETALLADA
 with tab_gestion:
@@ -431,11 +475,31 @@ with tab_vencimientos:
         else: 
             st.success("👍 Sin vencimientos cercanos.")
 
-            
 
 # ==========================================
 # 🤖 PESTAÑA 5: ASISTENTE AGENTE IA (MODIFICACIONES POR CHAT)
 # ==========================================
+
+if "prompt_ia_automatico" not in st.session_state:
+    st.session_state.prompt_ia_automatico = ""
+
+def procesar_escaneo_ia():
+    codigo = st.session_state.input_escanner_ia.strip()
+    if codigo:
+        df_actual = st.session_state.df
+        # Buscamos si el código ya existe en el inventario
+        match = df_actual[df_actual["Código"].astype(str) == codigo]
+        
+        if not match.empty:
+            nombre_prod = match.iloc[0]["Producto"]
+            # El sistema arma el mensaje por vos
+            st.session_state.prompt_ia_automatico = f"Acabo de escanear el producto: '{nombre_prod}' (Código: {codigo}). Mostrame sus datos actuales y decime qué podemos hacer."
+        else:
+            st.session_state.prompt_ia_automatico = f"Acabo de escanear el código: '{codigo}', pero no está en el inventario. Preparate para agregarlo como nuevo."
+        
+        # Limpiamos la caja del escáner para que quede lista para el próximo
+        st.session_state.input_escanner_ia = ""
+
 with tab_ia:
     st.markdown("### 🤖 Tu Asistente Operativo Inteligente")
     st.write("Aquí puedes hablar con tu asistente IA para gestionar el inventario.")
@@ -573,6 +637,8 @@ with tab_ia:
                                 
                     elif response.status_code == 503:
                         respuesta_visible = "⏳ Los servidores de Google están saturados en este momento. Esperá un minuto y volvé a intentar."
+                    elif response.status_code == 429:
+                        respuesta_visible = "🛑 ¡Fuiste muy rápido! La versión gratuita de la IA tiene un límite. Esperá 60 segundos y volvé a intentar."
                     else:
                         respuesta_visible = f"❌ Error de conexión con Gemini (Código {response.status_code})."
                 except Exception as e:
@@ -584,7 +650,6 @@ with tab_ia:
         
         if 'hubo_cambios' in locals() and hubo_cambios:
             st.rerun()
-
 # ==========================================
 # 🔊 DISPARADOR DE AUDIO GLOBAL
 # ==========================================

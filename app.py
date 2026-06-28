@@ -797,7 +797,15 @@ with tab_gestion:
         if "Código" in df_visual.columns:
             df_visual["Código"] = df_visual["Código"].astype(str).str.replace(r'\.0$', '', regex=True).replace(['nan', 'None', '<NA>'], '')
 
+        # Detectar si es mobile usando el ancho de la ventana
         cols_por_fila = 4
+        st.markdown("""
+            <script>
+            if (window.innerWidth <= 768) {
+                window.streamlitCols = 2;
+            }
+            </script>
+        """, unsafe_allow_html=True)
         productos = df_visual.to_dict("records")
         
         for fila_idx in range(0, len(productos), cols_por_fila):

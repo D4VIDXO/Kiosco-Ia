@@ -597,18 +597,107 @@ input[type="password"]:focus {
     max-width: 1400px !important;
 }
  
-/* ─── RESPONSIVO: pantallas pequeñas ──────────────── */
+/* ─── RESPONSIVO: tablets y celulares ─────────────── */
 @media (max-width: 768px) {
+
+    /* Contenedor principal */
     .main .block-container {
-        padding: 1.25rem 1rem !important;
+        padding: 1rem 0.75rem !important;
     }
- 
+
+    /* Título */
     h1 {
-        font-size: 1.8rem !important;
+        font-size: 1.6rem !important;
     }
- 
+
+    h2 {
+        font-size: 1.2rem !important;
+    }
+
+    /* Métricas más compactas */
     [data-testid="stMetricValue"] {
-        font-size: 1.5rem !important;
+        font-size: 1.4rem !important;
+    }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 0.6rem !important;
+    }
+
+    /* Tabs: scroll horizontal en lugar de wrap */
+    [data-testid="stTabs"] {
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    [data-testid="stTab"] {
+        white-space: nowrap !important;
+        font-size: 0.7rem !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    /* Botones más grandes para touch */
+    [data-testid="stButton"] > button {
+        min-height: 48px !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Inputs más grandes para touch */
+    [data-testid="stTextInput"] > div > div > input {
+        min-height: 48px !important;
+        font-size: 1rem !important;
+    }
+
+    /* Sidebar oculto por defecto en mobile */
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+
+    /* Columnas: apilar verticalmente en mobile */
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+    }
+
+    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+
+    /* Chat input más grande */
+    [data-testid="stChatInput"] textarea {
+        font-size: 1rem !important;
+        min-height: 48px !important;
+    }
+
+    /* Selectbox más grande */
+    [data-testid="stSelectbox"] > div > div {
+        min-height: 48px !important;
+    }
+}
+
+/* ─── RESPONSIVO: celulares chicos ────────────────── */
+@media (max-width: 480px) {
+
+    .main .block-container {
+        padding: 0.75rem 0.5rem !important;
+    }
+
+    h1 {
+        font-size: 1.3rem !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 1.2rem !important;
+    }
+
+    /* Catálogo visual: 2 columnas en lugar de 4 */
+    .product-card {
+        width: 50% !important;
+    }
+
+    /* Formularios ocupan todo el ancho */
+    [data-testid="stForm"] {
+        padding: 0.75rem !important;
     }
 }
  

@@ -1,0 +1,614 @@
+/* ─── IMPORTAR FUENTES ─────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&display=swap');
+ 
+/* ─── VARIABLES GLOBALES ───────────────────────────── */
+:root {
+    --color-bg:        #0A0A0A;
+    --color-surface:   #141414;
+    --color-card:      #1C1C1C;
+    --color-border:    #2A2A2A;
+    --color-border-hi: #3A3A3A;
+ 
+    --color-gold:      #C9A84C;
+    --color-gold-dim:  #8C7235;
+    --color-gold-glow: rgba(201, 168, 76, 0.08);
+ 
+    --color-text:      #F0EDE6;
+    --color-text-2:    #9A9590;
+    --color-text-3:    #5A5650;
+ 
+    --color-danger:    #C44;
+    --color-success:   #3A8C5C;
+    --color-warn:      #C9853A;
+ 
+    --radius-sm:  4px;
+    --radius-md:  8px;
+    --radius-lg:  12px;
+    --radius-xl:  20px;
+ 
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+ 
+    --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-card: 0 2px 24px rgba(0,0,0,0.5);
+    --shadow-glow: 0 0 0 1px var(--color-gold), 0 4px 24px rgba(201,168,76,0.12);
+}
+ 
+/* ─── RESET & BASE ─────────────────────────────────── */
+* { box-sizing: border-box; }
+ 
+/* Fondo principal */
+.stApp {
+    background: var(--color-bg) !important;
+    font-family: var(--font-body) !important;
+    color: var(--color-text) !important;
+}
+ 
+/* ─── SIDEBAR ──────────────────────────────────────── */
+[data-testid="stSidebar"] {
+    background: var(--color-surface) !important;
+    border-right: 1px solid var(--color-border) !important;
+}
+ 
+[data-testid="stSidebar"] * {
+    color: var(--color-text) !important;
+}
+ 
+/* ─── HEADER PRINCIPAL ─────────────────────────────── */
+h1 {
+    font-family: var(--font-display) !important;
+    font-size: clamp(2rem, 4vw, 3.2rem) !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--color-text) !important;
+    line-height: 1.1 !important;
+    margin-bottom: 0.25rem !important;
+}
+ 
+/* Línea dorada bajo el título */
+h1::after {
+    content: '';
+    display: block;
+    width: 3rem;
+    height: 3px;
+    background: var(--color-gold);
+    margin-top: 0.6rem;
+    border-radius: 2px;
+}
+ 
+h2 {
+    font-family: var(--font-display) !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    color: var(--color-text) !important;
+    letter-spacing: -0.01em !important;
+}
+ 
+h3 {
+    font-family: var(--font-body) !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: var(--color-gold) !important;
+    margin-bottom: 1rem !important;
+}
+ 
+h4 {
+    font-family: var(--font-body) !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: var(--color-text) !important;
+    letter-spacing: 0.01em !important;
+    margin-bottom: 0.5rem !important;
+}
+ 
+/* ─── SUBHEADER / CAPTION ──────────────────────────── */
+[data-testid="stSubheader"],
+.stSubheader {
+    color: var(--color-text-2) !important;
+    font-size: 0.95rem !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.01em !important;
+}
+ 
+/* ─── MÉTRICAS (CARDS SUPERIORES) ─────────────────── */
+[data-testid="stMetric"] {
+    background: var(--color-card) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1.25rem 1.5rem !important;
+    transition: border-color var(--transition) !important;
+}
+ 
+[data-testid="stMetric"]:hover {
+    border-color: var(--color-gold-dim) !important;
+    background: var(--color-gold-glow) !important;
+}
+ 
+[data-testid="stMetricLabel"] {
+    font-size: 0.65rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: var(--color-text-3) !important;
+}
+ 
+[data-testid="stMetricValue"] {
+    font-family: var(--font-display) !important;
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+    color: var(--color-text) !important;
+    line-height: 1.2 !important;
+}
+ 
+[data-testid="stMetricDelta"] {
+    font-size: 0.8rem !important;
+}
+ 
+/* ─── TABS ─────────────────────────────────────────── */
+[data-testid="stTabs"] {
+    border-bottom: 1px solid var(--color-border) !important;
+    margin-bottom: 1.5rem !important;
+}
+ 
+[data-testid="stTab"] {
+    font-family: var(--font-body) !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: var(--color-text-3) !important;
+    padding: 0.6rem 1rem !important;
+    border-bottom: 2px solid transparent !important;
+    transition: all var(--transition) !important;
+}
+ 
+[data-testid="stTab"]:hover {
+    color: var(--color-text-2) !important;
+}
+ 
+[data-testid="stTab"][aria-selected="true"],
+[data-testid="stTab"].active {
+    color: var(--color-gold) !important;
+    border-bottom-color: var(--color-gold) !important;
+}
+ 
+/* ─── BOTONES ──────────────────────────────────────── */
+/* Botón primario */
+[data-testid="stButton"] > button[kind="primary"],
+button.stButton-primary,
+.stButton > button[data-baseweb="button"][kind="primary"] {
+    background: var(--color-gold) !important;
+    color: #0A0A0A !important;
+    border: none !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.65rem 1.5rem !important;
+    transition: all var(--transition) !important;
+    box-shadow: none !important;
+}
+ 
+[data-testid="stButton"] > button[kind="primary"]:hover {
+    background: #E2BB5C !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 16px rgba(201,168,76,0.25) !important;
+}
+ 
+[data-testid="stButton"] > button[kind="primary"]:active {
+    transform: translateY(0) !important;
+}
+ 
+/* Botón secundario */
+[data-testid="stButton"] > button[kind="secondary"],
+.stButton > button {
+    background: transparent !important;
+    color: var(--color-text-2) !important;
+    border: 1px solid var(--color-border-hi) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.55rem 1.2rem !important;
+    transition: all var(--transition) !important;
+}
+ 
+[data-testid="stButton"] > button[kind="secondary"]:hover,
+.stButton > button:hover {
+    border-color: var(--color-gold-dim) !important;
+    color: var(--color-gold) !important;
+    background: var(--color-gold-glow) !important;
+}
+ 
+/* Botón deshabilitado */
+[data-testid="stButton"] > button:disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+}
+ 
+/* ─── INPUTS DE TEXTO ──────────────────────────────── */
+[data-testid="stTextInput"] > div > div > input,
+[data-testid="stTextArea"] textarea {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--color-text) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.9rem !important;
+    padding: 0.65rem 1rem !important;
+    transition: border-color var(--transition) !important;
+}
+ 
+[data-testid="stTextInput"] > div > div > input:focus,
+[data-testid="stTextArea"] textarea:focus {
+    border-color: var(--color-gold) !important;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12) !important;
+    outline: none !important;
+}
+ 
+[data-testid="stTextInput"] > div > div > input::placeholder,
+[data-testid="stTextArea"] textarea::placeholder {
+    color: var(--color-text-3) !important;
+}
+ 
+/* Label de inputs */
+[data-testid="stTextInput"] label,
+[data-testid="stTextArea"] label,
+[data-testid="stNumberInput"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stDateInput"] label {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--color-text-3) !important;
+    margin-bottom: 0.4rem !important;
+}
+ 
+/* ─── NUMBER INPUT ─────────────────────────────────── */
+[data-testid="stNumberInput"] input {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--color-text) !important;
+    font-family: var(--font-body) !important;
+}
+ 
+[data-testid="stNumberInput"] input:focus {
+    border-color: var(--color-gold) !important;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12) !important;
+}
+ 
+/* Botones +/- del number input */
+[data-testid="stNumberInput"] button {
+    background: var(--color-border) !important;
+    border: none !important;
+    color: var(--color-text-2) !important;
+    border-radius: var(--radius-sm) !important;
+}
+ 
+[data-testid="stNumberInput"] button:hover {
+    background: var(--color-gold-dim) !important;
+    color: var(--color-text) !important;
+}
+ 
+/* ─── SELECTBOX ────────────────────────────────────── */
+[data-testid="stSelectbox"] > div > div {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--color-text) !important;
+}
+ 
+[data-testid="stSelectbox"] > div > div:hover {
+    border-color: var(--color-gold-dim) !important;
+}
+ 
+/* ─── DATE INPUT ───────────────────────────────────── */
+[data-testid="stDateInput"] > div {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+}
+ 
+/* ─── DATAFRAME / TABLAS ───────────────────────────── */
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-lg) !important;
+    overflow: hidden !important;
+    box-shadow: var(--shadow-card) !important;
+}
+ 
+[data-testid="stDataFrame"] table {
+    background: var(--color-surface) !important;
+}
+ 
+[data-testid="stDataFrame"] thead tr th {
+    background: var(--color-card) !important;
+    color: var(--color-text-3) !important;
+    font-size: 0.65rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    padding: 0.75rem 1rem !important;
+}
+ 
+[data-testid="stDataFrame"] tbody tr td {
+    color: var(--color-text) !important;
+    font-size: 0.875rem !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    padding: 0.6rem 1rem !important;
+    background: transparent !important;
+}
+ 
+[data-testid="stDataFrame"] tbody tr:last-child td {
+    border-bottom: none !important;
+}
+ 
+[data-testid="stDataFrame"] tbody tr:hover td {
+    background: var(--color-gold-glow) !important;
+}
+ 
+/* ─── MENSAJES DE ESTADO ───────────────────────────── */
+/* Info */
+[data-testid="stInfo"],
+.stAlert[data-baseweb="notification"][kind="info"] {
+    background: rgba(58, 100, 160, 0.12) !important;
+    border: 1px solid rgba(58, 100, 160, 0.3) !important;
+    border-radius: var(--radius-md) !important;
+    color: #7EB8F7 !important;
+}
+ 
+/* Éxito */
+[data-testid="stSuccess"],
+.stAlert[kind="success"] {
+    background: rgba(58, 140, 92, 0.12) !important;
+    border: 1px solid rgba(58, 140, 92, 0.3) !important;
+    border-radius: var(--radius-md) !important;
+    color: #6BD4A0 !important;
+}
+ 
+/* Error */
+[data-testid="stError"],
+.stAlert[kind="error"] {
+    background: rgba(204, 68, 68, 0.12) !important;
+    border: 1px solid rgba(204, 68, 68, 0.3) !important;
+    border-radius: var(--radius-md) !important;
+    color: #F08080 !important;
+}
+ 
+/* Warning */
+[data-testid="stWarning"],
+.stAlert[kind="warning"] {
+    background: rgba(201, 133, 58, 0.12) !important;
+    border: 1px solid rgba(201, 133, 58, 0.3) !important;
+    border-radius: var(--radius-md) !important;
+    color: #F0A060 !important;
+}
+ 
+/* ─── TOAST / NOTIFICACIÓN ─────────────────────────── */
+[data-testid="stToast"] {
+    background: var(--color-card) !important;
+    border: 1px solid var(--color-border-hi) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-card) !important;
+    color: var(--color-text) !important;
+    font-size: 0.875rem !important;
+}
+ 
+/* ─── DIVISOR ──────────────────────────────────────── */
+hr {
+    border: none !important;
+    border-top: 1px solid var(--color-border) !important;
+    margin: 1.5rem 0 !important;
+}
+ 
+/* ─── CHAT (PESTAÑA IA) ────────────────────────────── */
+[data-testid="stChatMessage"] {
+    background: var(--color-card) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-lg) !important;
+    margin-bottom: 0.75rem !important;
+    padding: 1rem 1.25rem !important;
+}
+ 
+[data-testid="stChatInput"] {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border-hi) !important;
+    border-radius: var(--radius-xl) !important;
+}
+ 
+[data-testid="stChatInput"]:focus-within {
+    border-color: var(--color-gold) !important;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12) !important;
+}
+ 
+[data-testid="stChatInput"] textarea {
+    background: transparent !important;
+    color: var(--color-text) !important;
+    font-family: var(--font-body) !important;
+}
+ 
+/* ─── SPINNER ──────────────────────────────────────── */
+[data-testid="stSpinner"] {
+    color: var(--color-gold) !important;
+}
+ 
+/* ─── FORMULARIOS ──────────────────────────────────── */
+[data-testid="stForm"] {
+    background: var(--color-card) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1.5rem !important;
+}
+ 
+/* ─── CONTAINER CON SCROLL ─────────────────────────── */
+[data-testid="stVerticalBlock"] > div > [data-testid="stVerticalBlock"] {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-hi) transparent;
+}
+ 
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: var(--color-border-hi);
+    border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-gold-dim); }
+ 
+/* ─── MARKDOWN / TEXTO ─────────────────────────────── */
+.stMarkdown p {
+    color: var(--color-text-2) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.6 !important;
+}
+ 
+.stMarkdown strong {
+    color: var(--color-text) !important;
+    font-weight: 600 !important;
+}
+ 
+/* ─── CAPTION ──────────────────────────────────────── */
+.stCaption, [data-testid="stCaptionContainer"] {
+    color: var(--color-text-3) !important;
+    font-size: 0.75rem !important;
+}
+ 
+/* ─── WRITE / TEXT ─────────────────────────────────── */
+.stText {
+    color: var(--color-text-2) !important;
+}
+ 
+/* ─── PASSWORD INPUT ───────────────────────────────── */
+input[type="password"] {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--color-text) !important;
+    font-family: var(--font-body) !important;
+}
+ 
+input[type="password"]:focus {
+    border-color: var(--color-gold) !important;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12) !important;
+}
+ 
+/* ─── IMAGEN DE PRODUCTO (futuro uso) ──────────────── */
+.product-image {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    transition: transform var(--transition);
+}
+.product-image:hover { transform: scale(1.02); }
+ 
+/* ─── CARD DE PRODUCTO (futuro uso) ────────────────── */
+.product-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    cursor: pointer;
+}
+.product-card:hover {
+    border-color: var(--color-gold-dim);
+    box-shadow: var(--shadow-glow);
+}
+ 
+.product-card__name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0.5rem 0 0.25rem;
+    letter-spacing: 0.01em;
+}
+ 
+.product-card__price {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-gold);
+}
+ 
+.product-card__stock {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+}
+ 
+/* ─── BADGE DE ESTADO ──────────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+ 
+.badge--ok      { background: rgba(58,140,92,0.15);  color: #6BD4A0; }
+.badge--warn    { background: rgba(201,133,58,0.15); color: #F0A060; }
+.badge--danger  { background: rgba(204,68,68,0.15);  color: #F08080; }
+.badge--gold    { background: rgba(201,168,76,0.15); color: var(--color-gold); }
+ 
+/* ─── SECCIÓN DE TOTAL / CIERRE ────────────────────── */
+.total-display {
+    background: linear-gradient(135deg, var(--color-card), #1A1A10);
+    border: 1px solid var(--color-gold-dim);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-top: 1rem;
+}
+.total-display__label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+    margin-bottom: 0.25rem;
+}
+.total-display__amount {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--color-gold);
+    line-height: 1;
+}
+ 
+/* ─── AJUSTE DEL CONTENEDOR PRINCIPAL ─────────────── */
+.main .block-container {
+    padding: 2rem 2.5rem !important;
+    max-width: 1400px !important;
+}
+ 
+/* ─── RESPONSIVO: pantallas pequeñas ──────────────── */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: 1.25rem 1rem !important;
+    }
+ 
+    h1 {
+        font-size: 1.8rem !important;
+    }
+ 
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem !important;
+    }
+}
+ 

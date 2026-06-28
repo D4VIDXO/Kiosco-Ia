@@ -7,9 +7,6 @@ import json
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# Asegurate de poner esto bien arriba en tu app.py
-
-
 # Configuración de la página web (Pestaña del navegador y diseño ancho)
 st.set_page_config(
     page_title="Kiosco",
@@ -21,6 +18,19 @@ st.set_page_config(
 NOMBRE_ARCHIVO = "Inventario_Quiosco.xlsx"
 CARPETA_BACKUPS = "backups_inventario"
 CARPETA_REPORTES = "reportes_cierre"
+
+# ==========================================
+# ⚙️ INICIALIZACIÓN DE VARIABLES DE ESTADO
+# ==========================================
+# Acá inicializamos el número de ticket y los carritos para que no se borren
+if "numero_ticket" not in st.session_state:
+    st.session_state.numero_ticket = 1
+
+if "carrito_actual" not in st.session_state:
+    st.session_state.carrito_actual = []
+    
+if "ventas_del_dia" not in st.session_state:
+    st.session_state.ventas_del_dia = []
 
 # ==========================================
 # 🛡️ SISTEMA DE SEGURIDAD: BACKUP AUTOMÁTICO
@@ -194,13 +204,39 @@ tab_caja, tab_gestion, tab_carga, tab_vencimientos, tab_ia = st.tabs([
 ])
 
 # ==========================================
-# 🛒 PROCESO AUTOMATIZADO DE ESCANEO
+# 🛒 PROCESO AUTOMATIZADO DE ESCANEO Y AJUSTES
 # ==========================================
+
+if "carrito_actual" not in st.session_state:
+    st.session_state.carrito_actual = []
+
+def cancelar_producto(idx_carrito):
+    """Elimina el producto del carrito actual sin tocar el inventario porque aún no se descontó"""
+    venta_a_cancelar = st.session_state.carrito_actual.pop(idx_carrito)
+    st.toast(f"🔄 Quitado: '{venta_a_cancelar['Producto']}' eliminado de la venta actual.", icon="↩️")
+    st.session_state.sonido_a_reproducir = "error"
+    st.rerun()
+    
+    # Buscar el producto en el inventario maestro para devolverle su unidad
+    match = df[df["Código"] == codigo_prod]
+    if not match.empty:
+        idx_inv = match.index[0]
+        st.session_state.df.at[idx_inv, "Stock Actual"] += 1
+        guardar_inventario(st.session_state.df)
+    
+    # Eliminar de la lista del carrito actual
+    st.session_state.carrito_actual.pop(idx_carrito)
+    st.toast(f"🔄 Quitado: Se devolvió 1 unidad de '{venta_a_cancelar['Producto']}' al stock.", icon="↩️")
+    st.session_state.sonido_a_reproducir = "error"
+    st.rerun()
+
+
 def procesar_escaneo():
     codigo_leido = st.session_state.input_escanner.strip()
     if codigo_leido:
         df = st.session_state.df
-        match = df[df["Código"] == codigo_leido]
+        codigos_limpios = df["Código"].astype(str).str.replace(r'\.0$', '', regex=True)
+        match = df[codigos_limpios == codigo_leido]
         
         if not match.empty:
             idx = match.index[0]
@@ -208,23 +244,23 @@ def procesar_escaneo():
             stock_disp = df.at[idx, "Stock Actual"]
             precio = df.at[idx, "Precio Venta"]
             
-            if stock_disp > 0:
-                # Descontar stock
-                st.session_state.df.at[idx, "Stock Actual"] = stock_disp - 1
-                if guardar_inventario(st.session_state.df):
-                    # Añadir a la lista de ventas activas del turno
-                    st.session_state.ventas_del_dia.append({
-                        "Hora": datetime.now().strftime("%H:%M:%S"),
-                        "Código": codigo_leido,
-                        "Producto": producto,
-                        "Precio": float(precio),
-                        "Cantidad": 1,
-                        "Total": float(precio)
-                    })
-                    st.toast(f"✅ ¡Vendido! {producto} (${precio})", icon="🛒")
-                    st.session_state.sonido_a_reproducir = "exito"
+            # Chequeamos cuántos de este producto ya tenemos metidos en el carrito actual
+            en_carrito = sum(1 for item in st.session_state.carrito_actual if item["Código"] == codigo_leido)
+            
+            # Solo dejamos agregarlo si el stock real es mayor a lo que ya tenemos en la mano
+            if stock_disp > en_carrito:
+                st.session_state.carrito_actual.append({
+                    "Hora": datetime.now().strftime("%H:%M:%S"),
+                    "Código": codigo_leido,
+                    "Producto": producto,
+                    "Precio": float(precio),
+                    "Cantidad": 1,
+                    "Total": float(precio)
+                })
+                st.toast(f"📥 Agregado: {producto} (${precio})", icon="🛒")
+                st.session_state.sonido_a_reproducir = "exito"
             else:
-                st.error(f"🚨 ¡Sin Stock! No quedan unidades de '{producto}'.")
+                st.error(f"🚨 ¡Sin Stock! Solo te quedan {stock_disp} unidades de '{producto}' y ya las escaneaste todas.")
                 st.session_state.sonido_a_reproducir = "error"
         else:
             st.warning(f"🔍 Código '{codigo_leido}' no registrado.")
@@ -232,6 +268,7 @@ def procesar_escaneo():
             
     # Limpiar el input para el próximo escaneo
     st.session_state.input_escanner = ""
+
 
 # PESTAÑA 1: PUNTO DE VENTA (CAJA)
 with tab_caja:
@@ -246,15 +283,98 @@ with tab_caja:
     col_tabla, col_cierre = st.columns([2, 1])
     
     with col_tabla:
-        st.markdown("#### 🗒️ Registro de Productos Vendidos (Turno Actual)")
+        # ----------------------------------------------------
+        # SECCIÓN A: PRODUCTOS QUE SE ESTÁN ESCANEANDO AHORA
+        # ----------------------------------------------------
+        st.markdown("#### 🛒 Venta en Curso (Próxima Venta)")
+        
+        if st.session_state.carrito_actual:
+            with st.container(height=270):
+                c_hora, c_prod, c_prec, c_accion = st.columns([1, 2, 1, 1])
+                c_hora.markdown("**Hora**")
+                c_prod.markdown("**Producto**")
+                c_prec.markdown("**Precio**")
+                c_accion.markdown("**Modificar**")
+                st.markdown("---")
+                
+                for i in reversed(range(len(st.session_state.carrito_actual))):
+                    item = st.session_state.carrito_actual[i]
+                    ch, cp, cpr, ca = st.columns([1, 2, 1, 1])
+                    ch.write(f"⏱️ {item['Hora']}")
+                    cp.write(item['Producto'])
+                    cpr.write(f"${item['Precio']:,.2f}")
+                    
+                    if ca.button("❌ Quitar", key=f"btn_carrito_{i}", type="secondary", use_container_width=True):
+                        cancelar_producto(i)
+            
+            total_carrito = sum(item["Total"] for item in st.session_state.carrito_actual)
+            st.markdown(f"##### Subtotal a Cobrar: **${total_carrito:,.2f}**")
+            
+            # Botón para consolidar y pasar la venta al historial
+            if st.button("💰 COBRAR Y FINALIZAR TICKET", type="primary", use_container_width=True):
+                hora_ticket = datetime.now().strftime("%H:%M:%S")
+                df = st.session_state.df
+                codigos_limpios = df["Código"].astype(str).str.replace(r'\.0$', '', regex=True)
+                
+                # 1. Recién ahora descontamos el stock definitivo del Excel
+                for item in st.session_state.carrito_actual:
+                    codigo = item["Código"]
+                    match = df[codigos_limpios == codigo]
+                    if not match.empty:
+                        idx = match.index[0]
+                        df.at[idx, "Stock Actual"] -= 1 # Restamos 1 por cada unidad vendida
+                
+                # Guardamos los cambios en el Excel
+                guardar_inventario(df)
+                st.session_state.df = df
+                
+                # 2. Asignamos número de ticket y pasamos al historial
+                for item in st.session_state.carrito_actual:
+                    item["Ticket"] = st.session_state.numero_ticket
+                    item["Hora Ticket"] = hora_ticket
+                    
+                st.session_state.ventas_del_dia.extend(st.session_state.carrito_actual)
+                st.session_state.carrito_actual = []
+                st.session_state.numero_ticket += 1 # Preparamos el número para el próximo cliente
+                
+                st.toast("✅ ¡Venta cobrada y stock actualizado con éxito!", icon="💰")
+                st.session_state.sonido_a_reproducir = "exito"
+                st.rerun()
+        else:
+            st.info("Esperando escaneo de productos para iniciar un ticket...")
+            
+        st.markdown("---")
+        
+        # ----------------------------------------------------
+        # SECCIÓN B: HISTORIAL DE VENTAS YA COBRADAS (AGRUPADAS)
+        # ----------------------------------------------------
+        st.markdown("#### ✅ Ventas ya Realizadas en este Turno")
         if st.session_state.ventas_del_dia:
             df_ventas = pd.DataFrame(st.session_state.ventas_del_dia)
-            st.dataframe(df_ventas, use_container_width=True)
+            
+            # 🌟 CAMBIO ACÁ: Agrupamos todo por el número de Ticket y mejoramos el resumen visual
+            df_agrupado = df_ventas.groupby(["Ticket", "Hora Ticket"]).agg(
+                Artículos=('Cantidad', 'sum'),
+                Total_Cobrado=('Total', 'sum'),
+                # El nuevo truco está acá: Cuenta las apariciones y le pone el formato "Cantidad x Producto"
+                Detalle=('Producto', lambda x: ", ".join([f"{list(x).count(p)}x {p}" for p in set(x)])) 
+            ).reset_index()
+            
+            # Renombramos las columnas para que la tabla quede prolija
+            df_agrupado.rename(columns={"Ticket": "Nº Venta", "Hora Ticket": "Hora", "Total_Cobrado": "Total ($)"}, inplace=True)
+            
+            # 🌟 CAMBIO ACÁ: Quitamos el st.container y usamos height=250 directo en el dataframe
+            st.dataframe(
+                df_agrupado[["Nº Venta", "Hora", "Artículos", "Detalle", "Total ($)"]], 
+                use_container_width=True, 
+                hide_index=True,
+                height=250
+            )
             
             total_acumulado = df_ventas["Total"].sum()
-            st.markdown(f"### 💰 Total Actual en Caja: **${total_acumulado:,.2f}**")
+            st.markdown(f"### 💰 Total Acumulado en Caja: **${total_acumulado:,.2f}**")
         else:
-            st.info("Todavía no se escaneó ninguna venta en este turno.")
+            st.caption("Aún no hay ventas cerradas en este turno.")
             
     with col_cierre:
         st.markdown("#### 🔒 Módulo de Cierre de Caja")
@@ -271,9 +391,7 @@ with tab_caja:
                 
                 fecha_hoy_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 fecha_legible = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-                nombre_reporte = os.path.join(CARPETA_REPORTES, f"Reporte_Cierre_{fecha_hoy_str}.txt")
-                
-                # Escritura física del reporte en disco (.txt individual)
+                nombre_reporte = os.path.join(CARPETA_REPORTES, f"Reporte_Cierre_{fecha_hoy_str}.txt")                
                 with open(nombre_reporte, "w", encoding="utf-8") as f:
                     f.write("=========================================\n")
                     f.write("          REPORTE DE CIERRE DE CAJA       \n")
@@ -286,22 +404,15 @@ with tab_caja:
                     f.write(df_ventas.to_string(index=False))
                     f.write("\n=========================================\n")
                 
-                # REGISTRAR EL CIERRE EN UN EXCEL / CSV ACUMULATIVO
                 archivo_excel = os.path.join(CARPETA_REPORTES, "cierres_historicos.csv")
-                
-                # Detectamos automáticamente el nombre de la columna de productos
                 col_nombre_producto = "Producto" if "Producto" in df_ventas.columns else df_ventas.columns[0]
-                
-                # 🌟 CAMBIO AQUÍ: Agrupamos por producto y sumamos las cantidades vendidas en el turno
                 df_agrupado = df_ventas.groupby(col_nombre_producto)["Cantidad"].sum().reset_index()
                 
-                # Armamos la lista compacta para el Excel (Ej: "Coca-Cola (x5), Alfajor (x3)")
                 lista_resumen = []
                 for _, fila in df_agrupado.iterrows():
                     lista_resumen.append(f"{fila[col_nombre_producto]} (x{fila['Cantidad']})")
                 detalle_productos_texto = ", ".join(lista_resumen)
                 
-                # Creamos la fila con la estructura del Excel
                 datos_nueva_fila = {
                     "Fecha y Hora": [fecha_legible],
                     "Total Recaudado ($)": [total_caja],
@@ -310,29 +421,29 @@ with tab_caja:
                 }
                 df_nueva_fila = pd.DataFrame(datos_nueva_fila)
                 
-                # Guardado físico sin pisar datos anteriores
                 if os.path.exists(archivo_excel):
                     df_nueva_fila.to_csv(archivo_excel, mode='a', header=False, index=False, encoding='utf-8-sig')
                 else:
                     df_nueva_fila.to_csv(archivo_excel, index=False, encoding='utf-8-sig')
                 
-                # Reseteo de turno original
                 st.session_state.ventas_del_dia = []
-                st.success(f"💾 ¡Cierre exitoso! Guardado en la carpeta '{CARPETA_REPORTES}'.")
+                st.session_state.numero_ticket = 1
+                st.success(f"Cierre exitoso. Guardado en la carpeta '{CARPETA_REPORTES}'.")
                 st.session_state.sonido_a_reproducir = "exito"
                 st.rerun()
         else:
-            st.button("🏁 HACER CIERRE DE CAJA", disabled=True, use_container_width=True, help="Registrá ventas para habilitar el cierre.")
+            st.button("🏁 HACER CIERRE DE CAJA", disabled=True, use_container_width=True, help="Registrá y cobrá ventas para habilitar el cierre.")
             
-    # MOSTRAR EL HISTORIAL ACUMULADO ABAJO
+    # MOSTRAR EL HISTORIAL LIMITADO ABAJO
     st.markdown("---")
-    st.markdown("### 📊 Historial General de Cierres de Caja")
+    st.markdown("### 📊 Historial de Cierres de Caja Recientes")
     archivo_excel = os.path.join(CARPETA_REPORTES, "cierres_historicos.csv")
     
     if os.path.exists(archivo_excel):
         df_historico = pd.read_csv(archivo_excel)
-        st.dataframe(df_historico, use_container_width=True)
-        st.info("💡 Este historial se actualiza de forma automática con cada cierre. Podés abrir el archivo `cierres_historicos.csv` con Excel cuando quieras para gestionar tu contabilidad.")
+        filas_visibles = st.number_input("Mostrar últimos cierres:", min_value=1, max_value=100, value=10)
+        df_recortado = df_historico.iloc[::-1].head(filas_visibles)
+        st.dataframe(df_recortado, use_container_width=True)
     else:
         st.info("Aún no hay cierres registrados en el historial general.")
 
@@ -343,35 +454,73 @@ with tab_gestion:
     if df.empty:
         st.info("El inventario está vacío.")
     else:
-        buscar = st.text_input("🔍 Buscar producto por nombre (Edición):", "").strip()
-        df_filtrado = df[df["Producto"].str.contains(buscar, case=False, na=False)] if buscar else df
+        col_busca1, col_busca2 = st.columns(2)
         
-        if df_filtrado.empty:
-            st.warning("No se encontraron productos.")
+        with col_busca1:
+            buscar = st.text_input("🔍 Buscar producto por nombre (Edición):", "").strip()
+            
+        with col_busca2:
+            codigo_escaneado = st.text_input("⚡ Escanear código para buscar:", key="scanner_edicion_manual").strip()
+        
+        # 🎯 FILTRADO LOGICO: El escáner tiene prioridad absoluta
+        if codigo_escaneado:
+            df_filtrado = df[df.get("Código", "").astype(str).str.replace(r'\.0$', '', regex=True) == codigo_escaneado]
+            if df_filtrado.empty:
+                st.error(f"❌ No se encontró ningún producto con el código: '{codigo_escaneado}'")
         else:
+            df_filtrado = df[df["Producto"].str.contains(buscar, case=False, na=False)] if buscar else df
+        
+        if df_filtrado.empty and not codigo_escaneado:
+            st.warning("No se encontraron productos.")
+            
+        elif not df_filtrado.empty:
             producto_a_editar = st.selectbox("Seleccioná el producto:", df_filtrado["Producto"].unique(), key="selector_global")
             datos_prod = df[df["Producto"] == producto_a_editar].iloc[0]
             
             with st.form(f"form_edicion_{producto_a_editar}"):
-                st.write(f"✍️ **Modificando:** {producto_a_editar} (Código: {datos_prod['Código']})")
+                st.write(f"✍️ **Modificando:** {producto_a_editar}")
+                nuevo_nombre = st.text_input("📦 Nombre del Producto:", value=producto_a_editar, key=f"nm_{producto_a_editar}").strip()
+                
+                # --- LIMPIEZA DEL CÓDIGO (Chau .0) ---
+                codigo_actual = str(datos_prod.get("Código", ""))
+                if codigo_actual.endswith(".0"):
+                    codigo_actual = codigo_actual[:-2] # Le recorta los dos últimos caracteres
+                if codigo_actual.lower() in ["nan", "none", "<na>"]:
+                    codigo_actual = ""
+                    
+                nuevo_codigo = st.text_input("🏷️ Código de Barras (Escanealo acá si está en blanco):", value=codigo_actual, key=f"cd_{producto_a_editar}")
+                
                 c_edit1, c_edit2, c_edit3, c_edit4 = st.columns(4)
                 with c_edit1:
-                    nuevo_precio = st.number_input("Precio Venta ($)", min_value=0.0, value=float(datos_prod["Precio Venta"]), step=0.5, key=f"pr_{producto_a_editar}")
+                    # --- LIMPIEZA DEL PRECIO ---
+                    precio_excel = float(datos_prod.get("Precio Venta", 0))
+                    # Si es un número redondo sin centavos reales, lo forzamos a entero
+                    if precio_excel.is_integer():
+                        nuevo_precio = st.number_input("Precio Venta ($)", min_value=0, value=int(precio_excel), step=50, key=f"pr_{producto_a_editar}")
+                    else:
+                        nuevo_precio = st.number_input("Precio Venta ($)", min_value=0.0, value=precio_excel, step=0.5, key=f"pr_{producto_a_editar}")
+                
                 with c_edit2:
-                    nuevo_stock = st.number_input("Stock Actual", min_value=0, value=int(datos_prod["Stock Actual"]), key=f"st_{producto_a_editar}")
+                    # Aseguramos que el stock sea entero, pasando primero por float para evitar errores de lectura
+                    stock_actual = int(float(datos_prod.get("Stock Actual", 0)))
+                    nuevo_stock = st.number_input("Stock Actual", min_value=0, value=stock_actual, key=f"st_{producto_a_editar}")
+                
                 with c_edit3:
-                    nuevo_minimo = st.number_input("Stock Mínimo", min_value=0, value=int(datos_prod["Stock Mínimo"]), key=f"mn_{producto_a_editar}")
+                    stock_minimo = int(float(datos_prod.get("Stock Mínimo", 0)))
+                    nuevo_minimo = st.number_input("Stock Mínimo", min_value=0, value=stock_minimo, key=f"mn_{producto_a_editar}")
+                
                 with c_edit4:
                     try:
-                        fecha_v_actual = datetime.strptime(str(datos_prod["Fecha Vencimiento"]), '%Y-%m-%d')
+                        fecha_v_actual = datetime.strptime(str(datos_prod.get("Fecha Vencimiento", hoy)), '%Y-%m-%d')
                     except:
                         fecha_v_actual = hoy
-                    nueva_fecha_v = st.date_input("Nueva Fecha Vencimiento", value=fecha_v_actual, key=f"fc_{producto_a_editar}")
+                    nueva_fecha_v = st.date_input("Nueva Fecha", value=fecha_v_actual, key=f"fc_{producto_a_editar}")
                 
                 col_btn1, col_btn2 = st.columns([1, 5])
                 with col_btn1:
                     if st.form_submit_button("💾 Guardar"):
-                        st.session_state.df.loc[st.session_state.df["Producto"] == producto_a_editar, ["Precio Venta", "Stock Actual", "Stock Mínimo", "Fecha Vencimiento"]] = [nuevo_precio, nuevo_stock, nuevo_minimo, nueva_fecha_v.strftime('%Y-%m-%d')]
+                        # Al guardar, lo guardamos explícitamente como texto limpio
+                        st.session_state.df.loc[st.session_state.df["Producto"] == producto_a_editar, ["Código", "Precio Venta", "Stock Actual", "Stock Mínimo", "Fecha Vencimiento"]] = [str(nuevo_codigo), nuevo_precio, nuevo_stock, nuevo_minimo, nueva_fecha_v.strftime('%Y-%m-%d')]
                         if guardar_inventario(st.session_state.df):
                             st.success("¡Cambios guardados!")
                             st.session_state.sonido_a_reproducir = "exito"
@@ -382,9 +531,14 @@ with tab_gestion:
                         if guardar_inventario(st.session_state.df):
                             st.success("Producto eliminado.")
                             st.rerun()
+                            
+        df_visual = st.session_state.df.copy()
         
-        st.dataframe(st.session_state.df, use_container_width=True)
-
+        # Forzamos la columna a texto, le volamos el .0 y reemplazamos los vacíos por nada
+        if "Código" in df_visual.columns:
+            df_visual["Código"] = df_visual["Código"].astype(str).str.replace(r'\.0$', '', regex=True).replace(['nan', 'None', '<NA>'], '')
+            
+        st.dataframe(df_visual, use_container_width=True)
 # PESTAÑA 3: CARGA TRADICIONAL
 with tab_carga:
     st.markdown("### 📥 Registrar Producto Nuevo")
@@ -480,75 +634,79 @@ with tab_vencimientos:
 # 🤖 PESTAÑA 5: ASISTENTE AGENTE IA (MODIFICACIONES POR CHAT)
 # ==========================================
 
-if "prompt_ia_automatico" not in st.session_state:
-    st.session_state.prompt_ia_automatico = ""
-
-def procesar_escaneo_ia():
-    codigo = st.session_state.input_escanner_ia.strip()
-    if codigo:
-        df_actual = st.session_state.df
-        # Buscamos si el código ya existe en el inventario
-        match = df_actual[df_actual["Código"].astype(str) == codigo]
-        
-        if not match.empty:
-            nombre_prod = match.iloc[0]["Producto"]
-            # El sistema arma el mensaje por vos
-            st.session_state.prompt_ia_automatico = f"Acabo de escanear el producto: '{nombre_prod}' (Código: {codigo}). Mostrame sus datos actuales y decime qué podemos hacer."
-        else:
-            st.session_state.prompt_ia_automatico = f"Acabo de escanear el código: '{codigo}', pero no está en el inventario. Preparate para agregarlo como nuevo."
-        
-        # Limpiamos la caja del escáner para que quede lista para el próximo
-        st.session_state.input_escanner_ia = ""
-
 with tab_ia:
     st.markdown("### 🤖 Tu Asistente Operativo Inteligente")
-    st.write("Aquí puedes hablar con tu asistente IA para gestionar el inventario.")
+    st.write("Hablale a tu asistente para gestionar el inventario o **pasá el lector de códigos directamente en el chat**.")
     
     ARCHIVO_KEY = "api_key.txt"
-    key_guardada = ""
+    key_saved = ""
     
     if os.path.exists(ARCHIVO_KEY):
         with open(ARCHIVO_KEY, "r") as f:
-            key_guardada = f.read().strip()
+            key_saved = f.read().strip()
             
     gemini_key = st.text_input(
         "API Key",
-        value=key_guardada,
+        value=key_saved,
         type="password"
     ).strip()
     
-    if gemini_key and gemini_key != key_guardada:
+    if gemini_key and gemini_key != key_saved:
         with open(ARCHIVO_KEY, "w") as f:
             f.write(gemini_key)
         st.success("✅ ¡Clave guardada de forma segura!")
     
     st.markdown("---")
     
-    # Renderizar el historial de chat interactivo
+    # Renderizar el historial de chat interactivo visible
     for mensaje in st.session_state.historial_chat:
         with st.chat_message(mensaje["role"]):
             st.write(mensaje["content"])
             
-    prompt_usuario = st.chat_input("Escribí una orden para tu Kiosco...")
+    # ÚNICA CAJA DE ENTRADA: Sirve para escribir o para gatillar el escáner
+    prompt_chat = st.chat_input("Escribí una orden o pasá el escáner acá...")
     
-    if prompt_usuario:
+    if prompt_chat:
+        # 1. Mostramos en pantalla exactamente lo que entró (ej: el número del código o el texto)
         with st.chat_message("user"):
-            st.write(prompt_usuario)
-        st.session_state.historial_chat.append({"role": "user", "content": prompt_usuario})
+            st.write(prompt_chat)
+        st.session_state.historial_chat.append({"role": "user", "content": prompt_chat})
         
         if not gemini_key:
             respuesta_visible = "⚠️ **Por favor, ingresá tu API Key de Gemini arriba para poder operar.**"
+            with st.chat_message("assistant"):
+                st.write(respuesta_visible)
+            st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_visible})
         else:
-            with st.spinner("Procesando tu orden en el inventario..."):
+            with st.spinner("Procesando..."):
+                texto_ingresado = prompt_chat.strip()
+                df_actual = st.session_state.df
+                
+                # 2. FILTRO INVISIBLE: ¿Es un código de barras o es texto normal?
+                # Si tiene solo números y al menos 4 dígitos, asumimos que fue el lector
+                if texto_ingresado.isdigit() and len(texto_ingresado) >= 4:
+                    if not df_actual.empty:
+                        codigos_limpios = df_actual["Código"].astype(str).str.replace(r'\.0$', '', regex=True)
+                        match = df_actual[codigos_limpios == texto_ingresado]
+                        
+                        if not match.empty:
+                            nombre_prod = match.iloc[0]["Producto"]
+                            prompt_a_enviar_ia = f"Acabo de escanear el producto: '{nombre_prod}' (Código: {texto_ingresado}). Mostrame sus datos actuales de forma breve y preguntame qué le modificamos."
+                        else:
+                            prompt_a_enviar_ia = f"Acabo de escanear el código: '{texto_ingresado}', pero no está en el inventario. Preguntame si lo quiero agregar como nuevo producto y guíame."
+                    else:
+                        prompt_a_enviar_ia = f"Acabo de escanear el código: '{texto_ingresado}', pero el inventario está vacío. Preguntame cómo se llama para agregarlo."
+                else:
+                    # Si tiene letras, es una orden normal tipeada por vos
+                    prompt_a_enviar_ia = texto_ingresado
+                
+                # 3. PREPARACIÓN DEL CONTEXTO PARA LA IA
                 resumen_inventario = st.session_state.df.to_string(index=False)
-                resumen_ventas = str(st.session_state.ventas_del_dia)
                 fecha_hoy_humano = datetime.now().strftime("%d/%m/%Y")
                 
-                # Apuntar a la API de Gemini 2.5-flash
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
                 headers = {'Content-Type': 'application/json'}
                 
-                # Instrucción estructurada para forzar la salida JSON
                 instruccion_sistema = (
                     "Sos un Agente IA operativo para un kiosco. Tu tarea es analizar lo que te pide el dueño "
                     "y decidir si quiere realizar una ACCIÓN en el inventario o solo hacer una CONSULTA.\n"
@@ -566,37 +724,34 @@ with tab_ia:
                     '    "Stock Mínimo": 5,\n'
                     '    "Fecha Vencimiento": "YYYY-MM-DD o vacío"\n'
                     "  },\n"
-                    '  "mensaje": "Tu respuesta amigable en español contándole al dueño lo que hiciste."\n'
+                    '  "mensaje": "Tu respuesta amigable en español contándole al dueño lo que hiciste o preguntándole qué necesita hacer."\n'
                     "}\n\n"
                     "Reglas:\n"
                     "1. Si te pide AGREGAR: busca completar todos los campos según su texto. Si no define stock mínimo, usa 5.\n"
                     "2. Si te pide MODIFICAR: el nombre del producto debe coincidir con uno existente. Solo altera los campos que te pidió cambiar, mantén el resto igual.\n"
-                    "3. Si es solo una pregunta: usa 'NINGUNA' en accion y poné la respuesta en 'mensaje'."
+                    "3. Si es solo un escaneo o pregunta: usa 'NINGUNA' en accion y contestá en 'mensaje'."
                 )
                 
                 payload = {
                     "contents": [{
-                        "parts": [{"text": f"{instruccion_sistema}\n\nPetición del dueño: {prompt_usuario}"}]
+                        "parts": [{"text": f"{instruccion_sistema}\n\nPetición del dueño: {prompt_a_enviar_ia}"}]
                     }]
                 }
                 
+                # 4. CONEXIÓN CON GEMINI Y EJECUCIÓN
                 try:
                     response = requests.post(url, headers=headers, json=payload)
                     if response.status_code == 200:
                         resultado_raw = response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
                         
-                        # Limpiar las posibles envolturas de código markdown
                         if resultado_raw.startswith("```"):
                             resultado_raw = resultado_raw.replace("```json", "").replace("```", "").strip()
                         
-                        # Parsear el paquete estructurado
                         paquete = json.loads(resultado_raw)
                         accion = paquete.get("accion", "NINGUNA")
                         datos = paquete.get("datos", {})
                         respuesta_visible = paquete.get("mensaje", "Orden procesada.")
                         
-                        # Ejecución dinámica sobre el inventario
-                        df_actual = st.session_state.df
                         hubo_cambios = False
                         
                         if accion == "AGREGAR":
@@ -636,20 +791,20 @@ with tab_ia:
                                 st.session_state.sonido_a_reproducir = "exito"
                                 
                     elif response.status_code == 503:
-                        respuesta_visible = "⏳ Los servidores de Google están saturados en este momento. Esperá un minuto y volvé a intentar."
+                        respuesta_visible = "⏳ Los servidores de Google están saturados. Esperá un minuto."
                     elif response.status_code == 429:
-                        respuesta_visible = "🛑 ¡Fuiste muy rápido! La versión gratuita de la IA tiene un límite. Esperá 60 segundos y volvé a intentar."
+                        respuesta_visible = "🛑 La versión gratuita tiene un límite. Esperá 60 segundos."
                     else:
                         respuesta_visible = f"❌ Error de conexión con Gemini (Código {response.status_code})."
                 except Exception as e:
-                    respuesta_visible = f"❌ Error procesando el comando de la IA: {str(e)}"
+                    respuesta_visible = f"❌ Error procesando el comando: {str(e)}"
                     
-        with st.chat_message("assistant"):
-            st.write(respuesta_visible)
-        st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_visible})
-        
-        if 'hubo_cambios' in locals() and hubo_cambios:
-            st.rerun()
+            with st.chat_message("assistant"):
+                st.write(respuesta_visible)
+            st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_visible})
+            
+            if 'hubo_cambios' in locals() and hubo_cambios:
+                st.rerun()
 # ==========================================
 # 🔊 DISPARADOR DE AUDIO GLOBAL
 # ==========================================

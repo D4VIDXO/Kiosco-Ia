@@ -1,0 +1,12 @@
+=========================================
+          REPORTE DE CIERRE DE CAJA       
+=========================================
+Fecha y Hora: 28/06/2026 14:43:59
+Total Recaudado: $5,000.00
+Artículos Vendidos: 3
+-----------------------------------------
+DETALLE DE LAS VENTAS:
+    Hora        Código          Producto  Precio  Cantidad  Total  Ticket Hora Ticket
+14:43:33 7795735000328 don satur saladas  2000.0         2 4000.0       1    14:43:38
+14:43:48 7798397444202     alfajor rasta  1000.0         1 1000.0       2    14:43:51
+=========================================

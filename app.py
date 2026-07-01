@@ -1022,7 +1022,7 @@ with tab_ia:
     st.markdown("### 🤖 Tu Asistente Operativo Inteligente")
     st.write("Hablale a tu asistente para gestionar el inventario o **pasá el lector de códigos directamente en el chat**.")
     
-    ARCHIVO_KEY = "api_key.txt"
+    ARCHIVO_KEY = "TXT/api_key.txt"
     key_saved = ""
     
     if os.path.exists(ARCHIVO_KEY):

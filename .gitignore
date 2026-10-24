@@ -1,4 +1,16 @@
 .venv/
 __pycache__/
+*.pyc
+
+# Credenciales (lo mas importante)
+.streamlit/secrets.toml
 api_key
 api_key.txt
+
+# Datos locales
+backups_inventario/
+imagenes_productos/
+reportes_cierre/
+CARPETA_IMAGENES/
+*.xlsx
+TXT/

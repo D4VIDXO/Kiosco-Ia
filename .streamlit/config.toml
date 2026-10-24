@@ -1,73 +1,29 @@
 # ============================================================
 #  KIOSCO — Configuración de Streamlit
-#  Tema: Oscuro Elegante · Dorado Minimal
+#  Tema: negro y vino tinto
 # ============================================================
- 
+
 [theme]
- 
-# Modo base: "dark" o "light"
 base = "dark"
- 
-# ─── COLORES PRINCIPALES ────────────────────────────────────
-# Fondo de la app
-backgroundColor = "#0A0A0A"
- 
-# Fondo del sidebar y widgets (inputs, selects, etc.)
-secondaryBackgroundColor = "#141414"
- 
-# Color principal del texto
-textColor = "#F0EDE6"
- 
-# Color de acento (links, focus, bordes activos)
-# Usamos el dorado característico de la identidad visual
-primaryColor = "#C9A84C"
- 
-# ─── TIPOGRAFÍA ─────────────────────────────────────────────
-# Fuente sans-serif para toda la UI
+backgroundColor = "#0D0A0B"
+secondaryBackgroundColor = "#181213"
+textColor = "#F2EAE8"
+primaryColor = "#C2415A"
 font = "sans serif"
- 
-# ============================================================
+
 [server]
- 
-# Puerto por defecto
 port = 8501
- 
-# No abrir el navegador automáticamente al iniciar (útil en producción)
+# false = abre el navegador solo al iniciar (cómodo con el .bat)
 headless = false
- 
-# Activar CORS (necesario si se accede desde otro dominio o red)
-enableCORS = false
- 
-# Activar XSRF protection
 enableXsrfProtection = true
- 
-# Máximo de mensajes WebSocket en cola (útil con el scanner de barras)
-maxMessageSize = 200
- 
-# ============================================================
-[runner]
- 
-# Rerun automático al detectar cambios en los archivos
-magicEnabled = true
- 
-# Mostrar advertencias en la app si se detectan patrones problemáticos
-installTracer = false
- 
-# ============================================================
+
+[client]
+# Oculta los menús de desarrollo (Deploy, etc.)
+toolbarMode = "minimal"
+
 [browser]
- 
-# URL del servidor (para generar links absolutos)
-serverAddress = "localhost"
- 
-# Puerto del servidor
-serverPort = 8501
- 
-# ============================================================
+gatherUsageStats = false
+
 [logger]
- 
-# Nivel de log: "error", "warning", "info", "debug"
 level = "warning"
- 
-# Formato del timestamp en los logs
 messageFormat = "%(asctime)s %(message)s"
- 

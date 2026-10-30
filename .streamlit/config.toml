@@ -1,14 +1,14 @@
 # ============================================================
 #  KIOSCO — Configuración de Streamlit
-#  Tema: negro y vino tinto
+#  Tema: negro y azul marino
 # ============================================================
 
 [theme]
 base = "dark"
-backgroundColor = "#0D0A0B"
-secondaryBackgroundColor = "#181213"
-textColor = "#F2EAE8"
-primaryColor = "#C2415A"
+backgroundColor = "#05070C"
+secondaryBackgroundColor = "#0B111D"
+textColor = "#E8EEF9"
+primaryColor = "#3B6FE0"
 font = "sans serif"
 
 [server]
@@ -27,3 +27,17 @@ gatherUsageStats = false
 [logger]
 level = "warning"
 messageFormat = "%(asctime)s %(message)s"
+
+[server]
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "dark"
+backgroundColor = "#080C14"
+secondaryBackgroundColor = "#101828"
+primaryColor = "#4A90E2"
+textColor = "#E8F0FC"
+font = "sans serif"

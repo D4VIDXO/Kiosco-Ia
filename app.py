@@ -1695,67 +1695,39 @@ with tab_ia:
   if (!SpeechRecognition) {
     micBtn.style.display = 'none';
   } else {
-    const rec = new SpeechRecognition();
-    rec.lang = 'es-AR';
-    rec.interimResults = true;
-    rec.continuous = true;
-    rec.maxAlternatives = 1;
     let escuchando = false;
-    let quiereEscuchar = false;
-    let baseText = '';
 
-    rec.onstart = () => {
+    micBtn.addEventListener('click', () => {
+      if (escuchando) return;
+
+      const rec = new SpeechRecognition();
+      rec.lang = 'es-AR';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
       escuchando = true;
       micBtn.classList.add('escuchando');
       status.textContent = '🎙 Escuchando...';
-    };
 
-    rec.onend = () => {
-      escuchando = false;
-      // Si el usuario no presionó stop, reiniciamos automáticamente
-      if (quiereEscuchar) {
-        try { rec.start(); } catch(e) {}
-      } else {
+      rec.onresult = (e) => {
+        const texto = e.results[0][0].transcript;
+        txt.value = txt.value ? txt.value + ' ' + texto : texto;
+        txt.style.height = 'auto';
+        txt.style.height = Math.min(txt.scrollHeight, 120) + 'px';
+      };
+
+      rec.onend = () => {
+        escuchando = false;
         micBtn.classList.remove('escuchando');
         status.textContent = '';
-      }
-    };
+      };
 
-    rec.onerror = (e) => {
-      if (e.error === 'not-allowed') {
-        status.textContent = 'Permiso de micrófono denegado.';
-        quiereEscuchar = false;
+      rec.onerror = (e) => {
+        escuchando = false;
         micBtn.classList.remove('escuchando');
-      } else if (e.error === 'no-speech') {
-        // silencio — no pasa nada, onend reinicia solo
-      } else {
-        status.textContent = '';
-      }
-    };
+        status.textContent = e.error === 'not-allowed' ? 'Permiso denegado.' : '';
+      };
 
-    rec.onresult = (e) => {
-      let interim = '';
-      let final = baseText;
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) { final += e.results[i][0].transcript + ' '; }
-        else { interim = e.results[i][0].transcript; }
-      }
-      baseText = final;
-      txt.value = (final + interim).trim();
-      txt.style.height = 'auto';
-      txt.style.height = Math.min(txt.scrollHeight, 120) + 'px';
-    };
-
-    micBtn.addEventListener('click', () => {
-      if (quiereEscuchar) {
-        quiereEscuchar = false;
-        rec.stop();
-        baseText = txt.value;
-      } else {
-        quiereEscuchar = true;
-        baseText = txt.value;
-        try { rec.start(); } catch(e) {}
-      }
+      rec.start();
     });
   }
 })();

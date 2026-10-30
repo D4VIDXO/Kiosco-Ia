@@ -1698,13 +1698,41 @@ with tab_ia:
     const rec = new SpeechRecognition();
     rec.lang = 'es-AR';
     rec.interimResults = true;
+    rec.continuous = true;
     rec.maxAlternatives = 1;
     let escuchando = false;
+    let quiereEscuchar = false;
     let baseText = '';
 
-    rec.onstart  = () => { escuchando = true;  micBtn.classList.add('escuchando'); status.textContent = '🎙 Escuchando...'; };
-    rec.onend    = () => { escuchando = false; micBtn.classList.remove('escuchando'); status.textContent = ''; };
-    rec.onerror  = (e) => { status.textContent = e.error === 'not-allowed' ? 'Permiso de micrófono denegado.' : ''; };
+    rec.onstart = () => {
+      escuchando = true;
+      micBtn.classList.add('escuchando');
+      status.textContent = '🎙 Escuchando...';
+    };
+
+    rec.onend = () => {
+      escuchando = false;
+      // Si el usuario no presionó stop, reiniciamos automáticamente
+      if (quiereEscuchar) {
+        try { rec.start(); } catch(e) {}
+      } else {
+        micBtn.classList.remove('escuchando');
+        status.textContent = '';
+      }
+    };
+
+    rec.onerror = (e) => {
+      if (e.error === 'not-allowed') {
+        status.textContent = 'Permiso de micrófono denegado.';
+        quiereEscuchar = false;
+        micBtn.classList.remove('escuchando');
+      } else if (e.error === 'no-speech') {
+        // silencio — no pasa nada, onend reinicia solo
+      } else {
+        status.textContent = '';
+      }
+    };
+
     rec.onresult = (e) => {
       let interim = '';
       let final = baseText;
@@ -1713,14 +1741,21 @@ with tab_ia:
         else { interim = e.results[i][0].transcript; }
       }
       baseText = final;
-      txt.value = final + interim;
+      txt.value = (final + interim).trim();
       txt.style.height = 'auto';
       txt.style.height = Math.min(txt.scrollHeight, 120) + 'px';
     };
 
     micBtn.addEventListener('click', () => {
-      if (escuchando) { rec.stop(); baseText = txt.value; }
-      else { baseText = txt.value; rec.start(); }
+      if (quiereEscuchar) {
+        quiereEscuchar = false;
+        rec.stop();
+        baseText = txt.value;
+      } else {
+        quiereEscuchar = true;
+        baseText = txt.value;
+        try { rec.start(); } catch(e) {}
+      }
     });
   }
 })();

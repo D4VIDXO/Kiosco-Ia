@@ -1660,21 +1660,24 @@ with tab_ia:
     50%      { box-shadow: 0 0 0 8px rgba(255,107,107,0); }
   }
 </style>
+"""
 
+    # Campo custom directo en st.markdown (NO iframe) para que el micrófono funcione
+    md_html(mic_html + """
 <script>
 (function() {
-  const txt   = document.getElementById('chat-txt');
+  if (window._chatReady) return;
+  window._chatReady = true;
+
+  const txt    = document.getElementById('chat-txt');
   const micBtn = document.getElementById('mic-btn');
-  const sendBtn = document.getElementById('send-btn');
+  const sendBtn= document.getElementById('send-btn');
   const status = document.getElementById('mic-status');
 
-  /* Auto-resize textarea */
   txt.addEventListener('input', () => {
     txt.style.height = 'auto';
     txt.style.height = Math.min(txt.scrollHeight, 120) + 'px';
   });
-
-  /* Enviar al presionar Enter (sin Shift) */
   txt.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
   });
@@ -1682,88 +1685,58 @@ with tab_ia:
   function enviar() {
     const v = txt.value.trim();
     if (!v) return;
-    // Envía el texto al DOM padre via postMessage (el script receptor está en el page JS)
-    window.parent.postMessage({type: 'chat_send', text: v}, '*');
-    txt.value = '';
-    txt.style.height = 'auto';
+    const inp = document.querySelector('.st-key-chat_envio_key input');
+    if (!inp) return;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(inp, v);
+    inp.dispatchEvent(new Event('input', {bubbles: true}));
+    txt.value = ''; txt.style.height = 'auto';
+    setTimeout(() => {
+      inp.focus();
+      inp.dispatchEvent(new KeyboardEvent('keydown',  {key:'Enter', keyCode:13, bubbles:true}));
+      inp.dispatchEvent(new KeyboardEvent('keypress', {key:'Enter', keyCode:13, bubbles:true}));
+      inp.dispatchEvent(new KeyboardEvent('keyup',    {key:'Enter', keyCode:13, bubbles:true}));
+    }, 20);
   }
 
   sendBtn.addEventListener('click', enviar);
 
-  /* Micrófono */
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    micBtn.style.display = 'none';
-  } else {
-    let escuchando = false;
-
+  /* Micrófono — corre en el DOM principal, sin iframe */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { micBtn.style.display = 'none'; }
+  else {
+    let activo = false;
     micBtn.addEventListener('click', () => {
-      if (escuchando) return;
-
-      const rec = new SpeechRecognition();
+      if (activo) return;
+      const rec = new SR();
       rec.lang = 'es-AR';
       rec.interimResults = false;
       rec.maxAlternatives = 1;
-      escuchando = true;
+      activo = true;
       micBtn.classList.add('escuchando');
       status.textContent = '🎙 Escuchando...';
 
       rec.onresult = (e) => {
-        const texto = e.results[0][0].transcript;
-        txt.value = txt.value ? txt.value + ' ' + texto : texto;
+        const t = e.results[0][0].transcript;
+        txt.value = txt.value ? txt.value + ' ' + t : t;
         txt.style.height = 'auto';
         txt.style.height = Math.min(txt.scrollHeight, 120) + 'px';
       };
-
       rec.onend = () => {
-        escuchando = false;
+        activo = false;
         micBtn.classList.remove('escuchando');
         status.textContent = '';
       };
-
       rec.onerror = (e) => {
-        escuchando = false;
+        activo = false;
         micBtn.classList.remove('escuchando');
         status.textContent = e.error === 'not-allowed' ? 'Permiso denegado.' : '';
       };
-
       rec.start();
     });
   }
 })();
-</script>
-"""
-
-    # Renderizar el campo custom (textarea + micrófono + enviar)
-    components.html(mic_html, height=110, scrolling=False)
-
-    # El campo custom envía via postMessage al script receptor en la página padre
-    # Este script receptor actualiza el st.text_input oculto y simula Enter
-    components.html("""
-<script>
-(function(){
-  if (window._chatListenerReady) return;
-  window._chatListenerReady = true;
-  window.addEventListener('message', function(e) {
-    if (!e.data || e.data.type !== 'chat_send') return;
-    const v = e.data.text;
-    // Busca el input de Streamlit con la clase específica del key
-    const inp = window.parent.document.querySelector('.st-key-chat_envio_key input');
-    if (!inp) return;
-    // Inyecta el valor via el setter nativo de React
-    const nv = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, 'value').set;
-    nv.call(inp, v);
-    inp.dispatchEvent(new window.parent.Event('input', {bubbles: true}));
-    // Presiona Enter después de 20ms para darle tiempo a React
-    setTimeout(() => {
-      inp.focus();
-      inp.dispatchEvent(new window.parent.KeyboardEvent('keydown', {key:'Enter', keyCode:13, which:13, bubbles:true}));
-      inp.dispatchEvent(new window.parent.KeyboardEvent('keypress',{key:'Enter', keyCode:13, which:13, bubbles:true}));
-      inp.dispatchEvent(new window.parent.KeyboardEvent('keyup',   {key:'Enter', keyCode:13, which:13, bubbles:true}));
-    }, 20);
-  });
-})();
-</script>""", height=0)
+</script>""")
 
     # Input oculto de Streamlit — recibe el texto desde JS
     prompt_chat = st.text_input(
